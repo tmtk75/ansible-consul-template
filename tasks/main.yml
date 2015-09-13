@@ -1,0 +1,49 @@
+---
+# tasks for consul-template
+- name: user
+  tags: [consul-template, consul-template.user]
+  user: name=consul
+
+- name: group
+  tags: [consul-template, consul-template.group]
+  group: name=consul
+
+- name: download binary
+  tags: [consul-template, consul-template.download]
+  get_url: url=https://github.com/hashicorp/consul-template/releases/download/v{{ version }}/consul-template_{{ version }}_linux_amd64.tar.gz
+  args:
+    force: true
+    dest: "{{ tmp_dir }}"
+    mode: 0644
+    sha256sum: "{{ sha256sum }}"
+
+- name: unarchive
+  tags: [consul-template, consul-template.unarchive]
+  unarchive: src={{ tmp_dir }}/consul-template_{{ version }}_linux_amd64.tar.gz dest={{ tmp_dir }} copy=no
+
+- name: mv
+  tags: [consul-template, consul-template.mv]
+  command: mv {{ tmp_dir }}/consul-template_{{ version }}_linux_amd64/consul-template {{ install_dir }}
+
+- name: make it executable
+  tags: [consul-template, consul-template.chmod]
+  file: path={{ install_dir }}/consul-template owner=consul group=consul mode=0755 state=file
+
+- name: config file
+  tags: [consul-template, consul-template.conf, consul-template.conf.config]
+  template: src=./consul-template.conf dest=/etc/consul-template.conf owner=consul group=consul mode=0644
+  when: ansible_distribution_major_version in ["6", "7"]
+
+- name: sysconfig file
+  tags: [consul-template, consul-template.conf, consul-template.conf.sysconfig]
+  copy: src=./sysconfig dest=/etc/sysconfig/consul-template owner=consul group=consul mode=0644
+  when: ansible_distribution_major_version in ["6", "7"]
+
+- name: consul-template.service file
+  tags: [consul-template, consul-template.conf, consul-template.conf.service]
+  copy: src=./consul-template.service dest=/etc/systemd/system/consul-template.service owner=consul group=consul mode=0644
+  when: ansible_distribution_major_version in ["7"]
+
+- name: service
+  tags: [consul-template, consul-template.service]
+  service: name=consul-template state={{ service_state }} enabled=yes

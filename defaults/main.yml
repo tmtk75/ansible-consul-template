@@ -1,0 +1,15 @@
+---
+# defaults file for consul-template
+version: "0.10.0"
+sha256sum: ef298a2ae54cf51dbfc4108194299a9055b252ff9b917e7dd40c72fa30820096
+install_dir: /usr/local/sbin
+consul_hostname: localhost
+consul_port: 8500
+tmp_dir: /tmp
+service_state: stopped
+
+# consul-template.conf
+retry: "10s"
+max_stale: "10m"
+log_level: "warn"
+
