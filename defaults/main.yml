@@ -13,3 +13,11 @@ retry: "10s"
 max_stale: "10m"
 log_level: "warn"
 
+#
+# template_items should be array of hash
+#
+# template_items:
+# - src: /etc/hosts.ctempl
+#   dest: /etc/hosts
+#
+template_items: []
