@@ -1,17 +1,22 @@
 ---
 # defaults file for consul-template
-version: "0.10.0"
-sha256sum: ef298a2ae54cf51dbfc4108194299a9055b252ff9b917e7dd40c72fa30820096
+# https://releases.hashicorp.com/consul-template/0.11.1/consul-template_0.11.1_linux_amd64.zip
+version: "0.11.1"
+sha256sum: "aa681229e77f93c569eca2883f674184d05d1bdc0ca33234e28c2b60f17dc398"
 install_dir: /usr/local/sbin
 consul_hostname: localhost
 consul_port: 8500
+config_dir: /etc/consul-template.d
 tmp_dir: /tmp
 service_state: stopped
+owner: consul-template
+group: consul-template
 
 # consul-template.conf
 retry: "10s"
 max_stale: "10m"
 log_level: "warn"
+pid_file: "/var/run/consul-template.pid"
 
 #
 # template_items should be array of hash

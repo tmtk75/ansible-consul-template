@@ -1,19 +1,19 @@
 ---
 # tasks for consul-template
-- name: user
-  user: name=consul
-  tags:
-    - consul-template
-    - consul-template.user
-
 - name: group
-  group: name=consul
+  group: name={{ group }}
   tags:
     - consul-template
     - consul-template.group
 
+- name: user
+  user: name={{ owner }} group={{ group }}
+  tags:
+    - consul-template
+    - consul-template.user
+
 - name: download binary
-  get_url: url=https://github.com/hashicorp/consul-template/releases/download/v{{ version }}/consul-template_{{ version }}_linux_amd64.tar.gz
+  get_url: url=https://releases.hashicorp.com/consul-template/{{ version }}/consul-template_{{ version }}_linux_amd64.zip
   args:
     force: true
     dest: "{{ tmp_dir }}"
@@ -24,25 +24,33 @@
     - consul-template.download
 
 - name: unarchive
-  unarchive: src={{ tmp_dir }}/consul-template_{{ version }}_linux_amd64.tar.gz dest={{ tmp_dir }} copy=no
+  unarchive: src={{ tmp_dir }}/consul-template_{{ version }}_linux_amd64.zip dest={{ tmp_dir }} copy=no
   tags:
     - consul-template
     - consul-template.unarchive
 
 - name: mv
-  command: mv {{ tmp_dir }}/consul-template_{{ version }}_linux_amd64/consul-template {{ install_dir }}
+  command: mv {{ tmp_dir }}/consul-template {{ install_dir }}
   tags:
     - consul-template
     - consul-template.mv
 
 - name: make it executable
-  file: path={{ install_dir }}/consul-template owner=consul group=consul mode=0755 state=file
+  file: path={{ install_dir }}/consul-template owner={{ owner }} group={{ group }} mode=0755 state=file
   tags:
     - consul-template
     - consul-template.chmod
 
+- name: make directories
+  file: path={{ item }} owner={{ owner }} group={{ group }} mode=0755 state=directory
+  with_items:
+    - "{{ config_dir }}"
+  tags:
+    - consul-template
+    - consul-template.dirs
+
 - name: config file
-  template: src=./consul-template.conf dest=/etc/consul-template.conf owner=consul group=consul mode=0644
+  template: src=./consul-template.conf dest={{ config_dir }}/consul-template.conf owner={{ owner }} group={{ group }} mode=0644
   when: ansible_distribution_major_version in ["6", "7"]
   tags:
     - consul-template
@@ -50,20 +58,52 @@
     - consul-template.conf.config
 
 - name: sysconfig file
-  copy: src=./sysconfig dest=/etc/sysconfig/consul-template owner=consul group=consul mode=0644
+  template: src=./sysconfig dest=/etc/sysconfig/consul-template owner={{ owner }} group={{ group }} mode=0644
   when: ansible_distribution_major_version in ["6", "7"]
   tags:
     - consul-template
     - consul-template.conf
     - consul-template.conf.sysconfig
 
+- name: init-script
+  copy: src=./init-script dest=/etc/init.d/consul-template owner={{ owner }} group={{ group }} mode=0755
+  when: ansible_distribution_major_version in ["6"]
+  tags:
+    - consul-template
+    - consul-template.conf
+    - consul-template.conf.init-script
+
 - name: consul-template.service file
-  copy: src=./consul-template.service dest=/etc/systemd/system/consul-template.service owner=consul group=consul mode=0644
+  copy: src=./consul-template.service dest=/etc/systemd/system/consul-template.service owner={{ owner }} group={{ group }} mode=0644
   when: ansible_distribution_major_version in ["7"]
   tags:
     - consul-template
     - consul-template.conf
     - consul-template.conf.service
+
+- name: put template files
+  ## NOTE: dest={{ item.src }} is expected because src is a path on the host
+  template: src={{ item.src }} dest={{ config_dir }}/{{ item.src | basename }} owner={{ owner }} group={{ group }} mode=0644
+  with_items: template_items
+  tags:
+    - consul-template
+    - consul-template.template
+
+- name: ensure permission for dest
+  file: path={{ item.dest }} group={{ group }} state=file mode=g+w
+  with_items: template_items
+  tags:
+    - consul-template
+    - consul-template.template
+    - consul-template.template.dest
+
+- name: ensure permission for dest dir
+  file: path={{ item.dest | dirname }} group={{ group }} state=directory mode=g+w
+  with_items: template_items
+  tags:
+    - consul-template
+    - consul-template.template
+    - consul-template.template.dir
 
 - name: service
   service: name=consul-template state={{ service_state }} enabled=yes

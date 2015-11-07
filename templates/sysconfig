@@ -1,0 +1,1 @@
+OPTIONS="-config={{ config_dir }}/consul-template.conf"
