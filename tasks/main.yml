@@ -81,6 +81,13 @@
     - consul-template.conf
     - consul-template.conf.service
 
+- name: backup replaced files
+  command: cp {{ item.dest }} {{ item.dest | dirname }}/{{ item.dest | basename }}-{{ lookup('pipe', 'date +%Y%m%dT%H%M%SZ') }}.bak
+  with_items: template_items
+  tags:
+    - consul-template
+    - consul-template.backup
+
 - name: put template files
   ## NOTE: dest={{ item.src }} is expected because src is a path on the host
   template: src={{ item.src }} dest={{ config_dir }}/{{ item.src | basename }} owner={{ owner }} group={{ group }} mode=0644
